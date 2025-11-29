@@ -1,16 +1,13 @@
 import React, { useState } from "react";
-import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { Heart, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { useCart } from "../lib/cart";
 import { useFavorites } from "../lib/favorites";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
 import type { Product } from "../types";
 import { toast } from "sonner";
-import { cn } from "./ui/utils";
-import { Link } from "react-router-dom";
 
 interface ProductCardProps {
   product: Product;
@@ -22,6 +19,24 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
   const { toggle: toggleFavorite, isFavorite } = useFavorites();
 
+  // Carousel state
+  const images =
+    (product.images?.length ? product.images : [product.image]).filter(Boolean) as string[];
+  const [index, setIndex] = useState(0);
+  const hasMultiple = images.length > 1;
+
+  const goPrev = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const goNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIndex((prev) => (prev + 1) % images.length);
+  };
+
   const originalPrice = product.price;
   const discount = product.discount || 0;
   const finalPrice =
@@ -31,7 +46,6 @@ export function ProductCard({ product }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    // CHECK IF USER IS LOGGED IN
     if (!user) {
       toast.error("Please login to add items to cart");
       navigate("/auth");
@@ -49,7 +63,7 @@ export function ProductCard({ product }: ProductCardProps) {
       price: finalPrice,
       originalPrice,
       discount,
-      image: product.image || (product.images && product.images[0]) || "",
+      image: images[0] || "",
     });
 
     toast.success("Added to cart");
@@ -73,15 +87,12 @@ export function ProductCard({ product }: ProductCardProps) {
       data-testid="product-card"
       className="group border rounded-lg overflow-hidden bg-card hover:shadow-lg transition flex flex-col h-full"
     >
-      {/* Image Section */}
+      {/* Carousel Section */}
       <div className="relative">
         <img
-          src={
-            product.image ||
-            (product.images && product.images[0]) ||
-            "https://via.placeholder.com/300"
-          }
-          alt={product.name || product.title || "Product"}
+          key={index}
+          src={images[index] || "https://via.placeholder.com/300"}
+          alt={(product.name || product.title || "Product") + ` image ${index + 1}`}
           className="h-48 w-full object-cover"
           onError={(e) => {
             e.currentTarget.src = "https://via.placeholder.com/300";
@@ -90,7 +101,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Discount Badge */}
         {discount > 0 && (
-          <Badge className="absolute top-2 left-2 bg-red-600 text-white">
+          <Badge className="absolute top-2 left-2 bg-red-600 text-white pointer-events-none">
             -{discount}%
           </Badge>
         )}
@@ -103,49 +114,72 @@ export function ProductCard({ product }: ProductCardProps) {
         >
           <Heart
             className={`h-4 w-4 ${
-              isFavorite(product.id)
-                ? "fill-red-500 text-red-500"
-                : "text-gray-600"
+              isFavorite(product.id) ? "fill-red-500 text-red-500" : "text-gray-600"
             }`}
           />
         </button>
+
+        {/* Carousel Arrows */}
+        {hasMultiple && (
+          <>
+            <button
+              aria-label="Previous image"
+              onClick={goPrev}
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 text-white hover:bg-black/60"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              aria-label="Next image"
+              onClick={goNext}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 text-white hover:bg-black/60"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+
+            {/* Dots */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {images.map((_, i) => (
+                <span
+                  key={i}
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    i === index ? "bg-white" : "bg-white/50"
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Content Section */}
       <div className="p-4 flex-1 flex flex-col gap-2">
-        {/* Title */}
         <h3 className="font-semibold text-sm line-clamp-2">
           {product.name || product.title || "Product"}
         </h3>
 
-        {/* Description */}
         {product.description && (
           <p className="text-xs text-muted-foreground line-clamp-2">
             {product.description}
           </p>
         )}
 
-        {/* Category */}
         {product.category && (
           <Badge variant="outline" className="text-xs w-fit">
             {product.category}
           </Badge>
         )}
 
-        {/* Rating */}
         {product.rating && product.rating > 0 && (
           <div className="flex items-center gap-1 text-xs">
             <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
             <span className="font-medium">{product.rating.toFixed(1)}</span>
             {product.reviewCount && product.reviewCount > 0 && (
-              <span className="text-muted-foreground">
-                ({product.reviewCount})
-              </span>
+              <span className="text-muted-foreground">({product.reviewCount})</span>
             )}
           </div>
         )}
 
-        {/* Price Section */}
         <div className="flex items-center gap-2 mt-auto">
           <span data-testid="final-price" className="text-xl font-bold text-primary">
             ${finalPrice.toFixed(2)}
@@ -160,14 +194,10 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
 
-        {/* Stock Status */}
         {product.inStock === false && (
-          <p className="text-xs text-red-600 font-semibold">
-            Out of Stock
-          </p>
+          <p className="text-xs text-red-600 font-semibold">Out of Stock</p>
         )}
 
-        {/* Add to Cart Button */}
         <Button
           onClick={handleAddToCart}
           data-testid="add-to-cart-btn"

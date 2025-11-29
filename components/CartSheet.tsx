@@ -106,7 +106,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
             <div className="border-t pt-4 space-y-4">
               <div className="flex justify-between text-lg font-bold">
                 <span>Total:</span>
-                <span data-testid="cart-total">${total.toFixed(2)}</span>
+                <span data-testid="cart-total">${getTotal().toFixed(2)}</span>
               </div>
               <Link to="/checkout" className="block">
                 <Button className="w-full" size="lg">
@@ -119,4 +119,9 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
       </SheetContent>
     </Sheet>
   );
+}
+
+function getTotal() {
+  const { items } = useCart();
+  return items.reduce((sum, item) => sum + item.price * item.qty, 0);
 }

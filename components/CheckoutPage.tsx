@@ -229,7 +229,7 @@ export function CheckoutPage() {
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
-                  <span data-testid="checkout-total">${getTotal().toFixed(2)}</span>
+                  <span data-testid="checkout-total">${total.toFixed(2)}</span>
                 </div>
               </div>
             </CardContent>
